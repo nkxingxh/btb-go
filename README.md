@@ -1,6 +1,6 @@
 <div align="center">
   <a href="https://github.com/miaowuawa/MyGO" target="_blank">
-    <img width="160" src="[MyGO](http://cdnjson.com/images/2025/06/19/mygo.jpg)" alt="logo">
+    <img width="160" src="[MyGO](https://cdnjson.com/images/2025/06/19/mygo.jpg)" alt="logo">
   </a>
   <h2 id="koishi">MyGO</h1>
 
