@@ -1,6 +1,6 @@
 <div align="center">
   <a href="https://github.com/miaowuawa/MyGO" target="_blank">
-    <img width="160" src="[MyGO](https://cdnjson.com/images/2025/06/19/mygo.jpg)" alt="logo">
+<img src="https://img.picui.cn/free/2025/06/19/6852ee5eb6324.jpg" alt="mygo.jpg" title="mygo.jpg" />  
   </a>
   <h2 id="koishi">MyGO</h1>
 
@@ -26,9 +26,14 @@
 起源于MikuMifa的biliTickerBuy，让会员购抢票不再迷路
 </div>
 
+<br>
+<b>在此通知移除前，此项目仅供技术分析，您也不应该在此时将MyGO作为正式环境使用的抢票软件。</b>
+<br>
+<b>在此感谢原作者MikuMifa为BW而做出的一切努力！这么多年来，你辛苦了！</b>
 
-** 在此通知移除前，此项目仅供技术分析，您也不应该在此时将MyGO作为正式环境使用的抢票软件。 **
-** 在此致敬，感谢原作者MikuMifa为BW而做出的一切努力！这么多年来，你辛苦了！**
+<br>
+<br>
+
 ## 注意事项
 
 本项目没有云控，但我们仍然不允许您使用此项目进行盈利性/商业化批量抢票。除非您承认，您失去了父母。
