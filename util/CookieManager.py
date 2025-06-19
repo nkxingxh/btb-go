@@ -1,6 +1,7 @@
 from loguru import logger
 from playwright.sync_api import sync_playwright
 from util.KVDatabase import KVDatabase
+from service import RiskClient
 
 
 class CookieManager:
@@ -28,7 +29,6 @@ class CookieManager:
                 cookies = page.context.cookies()
                 self.db.insert("cookie", cookies)
                 browser.close()
-                logger.info("登录成功, 浏览器退出.")
                 return self.db.get("cookie")
             except Exception as e:
                 logger.error(f"登录失败: {e}")

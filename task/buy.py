@@ -15,7 +15,7 @@ from requests import HTTPError, RequestException
 from util import ERRNO_DICT, NtfyUtil, PushPlusUtil, ServerChanUtil, time_service
 from util import bili_ticket_gt_python
 from util.BiliRequest import BiliRequest
-from util.RiskClient import RiskClient
+from service.RiskClient import RiskClient
 
 if bili_ticket_gt_python is not None:
     Amort = importlib.import_module("geetest.TripleValidator").TripleValidator()
@@ -65,7 +65,7 @@ def buy_stream(
         "order_type": 1,
         "project_id": tickets_info["project_id"],
         "sku_id": tickets_info["sku_id"],
-        "token": "", # ctoken required here
+        "token": "", # ctoken required here 4 HotProject
         "newRisk": True,
     }
 
@@ -91,13 +91,11 @@ def buy_stream(
             pass
 
 
-
-
-    # 初始化CtokenClient，从tickets_info中获取服务器地址
+    # 初始化RiskClient，从tickets_info中获取服务器地址
     tickets_info_dict = json.loads(tickets_info_str)
-    if 'ctoken_server_url' not in tickets_info_dict or not tickets_info_dict['ctoken_server_url']:
-        raise ValueError("ctoken服务器地址未配置，请在GUI中设置ctoken_server_url参数")
-    ctoken_client = RiskClient(tickets_info_dict['ctoken_server_url'])
+    if ('ctoken_server_url' not in tickets_info_dict or not tickets_info_dict['ctoken_server']['url']) and (isHotProject):
+        raise ValueError("此类型票必须配置ctoken服务器地址，但ctoken服务器地址未配置，请在GUI中设置ctoken_server_url参数")
+    risk_client = RiskClient(tickets_info_dict['ctoken_server_url'])
     ctkid = None
     ctoken = ""
 
@@ -108,12 +106,13 @@ def buy_stream(
                 try:
                     if ctkid:
                         # 刷新ctoken
-                        refresh_result = ctoken_client.refresh_ctoken(ctkid)
+                        refresh_result = risk_client.refresh_ctoken(ctkid)
                         ctoken = refresh_result.get("ctoken", "")
                         yield f"刷新ctoken成功: {ctoken[:10]}..."
                     else:
                         # 首次获取ctoken
-                        init_result = ctoken_client.get_ctoken()
+                        init_result = risk_client.get_ctoken(screen_width=tickets_info_dict['ctoken_server']['screen_width'],
+                                                             screen_height=tickets_info_dict['ctoken_server']['screen_height'])
                         ctoken = init_result.get("ctoken", "")
                         ctkid = init_result.get("ctkid", "")
                         yield f"获取初始ctoken成功: {ctoken[:10]}..."
@@ -363,6 +362,7 @@ def buy_new_terminal(
         command.extend(["--ntfy_password", ntfy_password])
     if https_proxys:
         command.extend(["--https_proxys", https_proxys])
+    command.extend(["--isHotProject", isHotProject])
     command.extend(["--filename", filename])
     command.extend(["--endpoint_url", endpoint_url])
     command.extend(["--isHotProject", str(isHotProject)])

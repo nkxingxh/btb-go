@@ -7,10 +7,11 @@ from typing import Any, Dict, List
 from urllib.parse import urlparse, parse_qs
 
 import gradio as gr
-from service.GetCtoken import CtokenClient
+
 from gradio_calendar import Calendar
 from loguru import logger
 
+from service.RiskClient import RiskClient
 from util.BiliRequest import BiliRequest
 from util import TEMP_PATH, GLOBAL_COOKIE_PATH, main_request, set_main_request
 
@@ -198,7 +199,7 @@ def on_submit_all(
 ):
     try:
         # 初始化ctoken客户端
-        ctoken_client = CtokenClient(ctoken_server_url)
+        ctoken_client = RiskClient(ctoken_server_url)
         
         ticket_cur: dict[str, Any] = ticket_value[ticket_info]
         people_cur = [buyer_value[item] for item in people_indices]

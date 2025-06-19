@@ -5,12 +5,30 @@ class RiskClient:
     def __init__(self, server_url):
         self.server_url = server_url.rstrip('/')
 
-    def get_ctoken(self):
-        """获取ctoken"""
+    def get_ctoken(self, screen_width=360, screen_height=640):
+        """
+        获取ctoken
+        
+        参数:
+            screen_width (int): 屏幕宽度，默认360
+            screen_height (int): 屏幕高度，默认640
+            
+        返回:
+            str: 获取到的ctoken
+            
+        异常:
+            Exception: 当请求失败时抛出
+        """
         try:
-            response = requests.get(f"{self.server_url}/api/ctoken")
+            payload = {
+                "screen_width": screen_width,
+                "screen_height": screen_height
+            }
+            response = requests.post(f"{self.server_url}/generate", json=payload)
             response.raise_for_status()
-            return response.json().get('ctoken', '')
+            result = response.json()
+            # 根据README，响应中包含ctkid和ctoken
+            return result
         except requests.exceptions.RequestException as e:
             raise Exception(f"获取ctoken失败: {str(e)}")
 
