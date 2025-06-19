@@ -7,11 +7,19 @@ from typing import Any, Dict, List
 from urllib.parse import urlparse, parse_qs
 
 import gradio as gr
+from service.GetCtoken import CtokenClient
 from gradio_calendar import Calendar
 from loguru import logger
 
 from util.BiliRequest import BiliRequest
 from util import TEMP_PATH, GLOBAL_COOKIE_PATH, main_request, set_main_request
+
+# 浏览器配置
+browser_path_ui = gr.Textbox(
+    label="浏览器可执行文件路径",
+    placeholder="例如：C:/Program Files/Google/Chrome/Application/chrome.exe",
+    info="如果打不开浏览器请修改此项"
+)
 
 buyer_value: List[Dict[str, Any]] = []
 addr_value: List[Dict[str, Any]] = []
@@ -184,8 +192,12 @@ def on_submit_all(
     people_indices,
     people_buyer_index,
     address_index,
+    ctoken_server_url,
 ):
     try:
+        # 初始化ctoken客户端
+        ctoken_client = CtokenClient(ctoken_server_url)
+        
         ticket_cur: dict[str, Any] = ticket_value[ticket_info]
         people_cur = [buyer_value[item] for item in people_indices]
         people_buyer_cur = buyer_value[people_buyer_index]
@@ -224,6 +236,12 @@ def on_submit_all(
             },
             "cookies": main_request.cookieManager.get_cookies(),
             "phone": main_request.cookieManager.get_config_value("phone", ""),
+            "ctoken_server": {
+                "url": ctoken_server_url,  # 使用传入的服务器地址
+                "screen_width": 360,  # 默认屏幕宽度
+                "screen_height": 640  # 默认屏幕高度
+            },
+            "browser_path": browser_path_ui.value  # 浏览器可执行文件路径
         }
         if "link_id" in ticket_cur["ticket"]:
             config_dir["link_id"] = ticket_cur["ticket"]["link_id"]
@@ -257,7 +275,7 @@ def upload_file(filepath):
         raise gr.Error("登录出现错误", duration=5)
 
 
-def add():
+def add(browser_path=None):
     main_request.cookieManager.db.delete("cookie")
     gr.Info("已经注销，将打开浏览器，请在浏览器里面重新登录", duration=5)
     yield [
@@ -265,7 +283,7 @@ def add():
         gr.update(value=GLOBAL_COOKIE_PATH),
     ]
     try:
-        main_request.cookieManager.get_cookies_str_force()
+        main_request.cookieManager.get_cookies_str_force(browser_path=browser_path)
         name = main_request.get_request_name()
         gr.Info("登录成功", duration=5)
         yield [
@@ -286,6 +304,12 @@ def setting_tab():
 > - 地址 ： 会员购中心->地址管理
 > - 购买人信息：会员购中心->购买人信息
 """)
+    # 浏览器配置
+    browser_path_ui = gr.Textbox(
+        label="浏览器可执行文件路径",
+        placeholder="例如：C:/Program Files/Google/Chrome/Application/chrome.exe",
+        info="如果打不开浏览器请修改此项"
+    )
     with gr.Column(variant="compact"):
         with gr.Row():
             username_ui = gr.Text(
@@ -306,7 +330,7 @@ def setting_tab():
 
             upload_ui.upload(upload_file, [upload_ui], [username_ui, gr_file_ui])
 
-            add_btn.click(fn=add, inputs=None, outputs=[username_ui, gr_file_ui])
+            add_btn.click(fn=add, inputs=browser_path_ui, outputs=[username_ui, gr_file_ui])
 
     with gr.Accordion(label="填写你的当前账号所绑定的手机号[可选]", open=False):
         phone_gate_ui = gr.Textbox(
@@ -321,6 +345,12 @@ def setting_tab():
         phone_gate_ui.change(fn=input_phone, inputs=phone_gate_ui, outputs=None)
 
     with gr.Column(variant="compact"):
+        ctoken_server_ui = gr.Textbox(
+            label="ctoken服务器地址",
+            value="http://localhost:8080",
+            placeholder="请输入ctoken服务器地址",
+            info="默认: http://localhost:8080"
+        )
         info_ui = gr.TextArea(
             info="票务信息", label="配置票的信息", interactive=False, visible=False
         )
@@ -377,6 +407,7 @@ def setting_tab():
                     people_ui,
                     people_buyer_ui,
                     address_ui,
+                    ctoken_server_ui,
                 ],
                 outputs=[config_output_ui, config_file_ui],
             )
@@ -401,7 +432,7 @@ def setting_tab():
 
             try:
                 ticket_that_day = main_request.get(
-                    url=f"https://show.bilibili.com/api/ticket/project/infoByDate?id={project_id}&date={_date}"
+                    url=f"https://show.bilibili.com/api/ticket/project/infoByDate?id={project_id}&date={_date}&requestSource=neul-next"
                 ).json()["data"]
                 ticket_str_list = []
                 ticket_value = []

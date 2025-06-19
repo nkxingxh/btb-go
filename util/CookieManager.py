@@ -11,12 +11,15 @@ class CookieManager:
 
     @logger.catch
     def _login_and_save_cookies(
-        self, login_url="https://show.bilibili.com/platform/home.html"
+        self, login_url="https://show.bilibili.com/platform/home.html", browser_path=None
     ):
         logger.info("启动浏览器中，第一次启动会比较慢，请使用在浏览器登录")
         with sync_playwright() as p:
             try:
-                browser = p.chromium.launch(headless=False)
+                launch_options = {"headless": False}
+                if browser_path:
+                    launch_options["executable_path"] = browser_path
+                browser = p.chromium.launch(**launch_options)
                 page = browser.new_page()
                 page.goto(login_url)
                 page.click(".nav-header-register")
@@ -67,6 +70,6 @@ class CookieManager:
     def set_config_value(self, name, value):
         self.db.insert(name, value)
 
-    def get_cookies_str_force(self):
-        self._login_and_save_cookies()
+    def get_cookies_str_force(self, browser_path=None):
+        self._login_and_save_cookies(browser_path=browser_path)
         return self.get_cookies_str()

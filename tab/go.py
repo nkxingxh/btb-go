@@ -29,6 +29,13 @@ if bili_ticket_gt_python is not None:
 
 
 def go_tab(demo: gr.Blocks):
+    # 浏览器路径配置
+    browser_path = gr.Textbox(
+        label="浏览器可执行文件路径",
+        placeholder="例如：C:/Program Files/Google/Chrome/Application/chrome.exe",
+        visible=False
+    )
+    
     with gr.Column():
         gr.Markdown("""
             ### 上传或填入你要抢票票种的配置信息
@@ -502,6 +509,7 @@ def go_tab(demo: gr.Blocks):
             total_attempts_ui,
             audio_path_ui,
             https_proxy_ui,
+            browser_path,
         ],
     )
     process_btn.click(
