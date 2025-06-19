@@ -59,6 +59,7 @@ def on_submit_ticket_id(num):
     global ticket_str_list
     global sales_dates
     global project_id
+    global isHotProject
     try:
         buyer_value = []
         addr_value = []
@@ -70,7 +71,7 @@ def on_submit_ticket_id(num):
         else:
             raise gr.Error("输入无效，请输入一个有效的网址。", duration=5)
         res = main_request.get(
-            url=f"https://show.bilibili.com/api/ticket/project/getV2?version=134&id={num}&project_id={num}"
+            url=f"https://show.bilibili.com/api/ticket/project/getV2?id={num}&project_id={num}&requestSource=neul-next"
         )
         ret = res.json()
         # logger.debug(ret)
@@ -92,7 +93,7 @@ def on_submit_ticket_id(num):
         project_end_time = datetime.fromtimestamp(data["end_time"]).strftime(
             "%Y-%m-%d %H:%M:%S"
         )
-
+        isHotProject = data["hotProject"]
         venue_info = data["venue_info"]
         venue_name = venue_info["name"]
         venue_address = venue_info["address_detail"]
@@ -167,7 +168,8 @@ def on_submit_ticket_id(num):
             gr.update(visible=True),
             gr.update(
                 value=f"{extracted_id_message}\n获取票信息成功:\n展会名称：{project_name}\n"
-                f"开展时间：{project_start_time} - {project_end_time}\n场馆地址：{venue_name} {venue_address}",
+                f"开展时间：{project_start_time} - {project_end_time}\n场馆地址：{venue_name} {venue_address}\n"
+                f"项目类型：{'热门项目，需要填写ctoken服务器' if isHotProject else '非热门项目'}",
                 visible=True,
             ),
             gr.update(visible=True, value=sales_dates[0])
@@ -241,7 +243,8 @@ def on_submit_all(
                 "screen_width": 360,  # 默认屏幕宽度
                 "screen_height": 640  # 默认屏幕高度
             },
-            "browser_path": browser_path_ui.value  # 浏览器可执行文件路径
+            "browser_path": browser_path_ui.value,  # 浏览器可执行文件路径
+            "isHotProject": isHotProject  # 是否热门项目
         }
         if "link_id" in ticket_cur["ticket"]:
             config_dir["link_id"] = ticket_cur["ticket"]["link_id"]
@@ -436,6 +439,7 @@ def setting_tab():
                 ).json()["data"]
                 ticket_str_list = []
                 ticket_value = []
+                logger.debug(ticket_that_day)
                 for screen in ticket_that_day["screen_list"]:
                     screen_name = screen["name"]
                     screen_id = screen["id"]

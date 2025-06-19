@@ -15,6 +15,7 @@ from requests import HTTPError, RequestException
 from util import ERRNO_DICT, NtfyUtil, PushPlusUtil, ServerChanUtil, time_service
 from util import bili_ticket_gt_python
 from util.BiliRequest import BiliRequest
+from service.GetCtoken import CtokenClient
 
 if bili_ticket_gt_python is not None:
     Amort = importlib.import_module("geetest.TripleValidator").TripleValidator()
@@ -41,6 +42,7 @@ def buy_stream(
         ntfy_url=None,
         ntfy_username=None,
         ntfy_password=None,
+        isHotProject=False,
 ):
     if bili_ticket_gt_python is None:
         yield "当前设备不支持本地过验证码，无法使用"
@@ -63,7 +65,7 @@ def buy_stream(
         "order_type": 1,
         "project_id": tickets_info["project_id"],
         "sku_id": tickets_info["sku_id"],
-        "token": "",
+        "token": "", # ctoken required here
         "newRisk": True,
     }
 
@@ -88,8 +90,41 @@ def buy_stream(
         while time.perf_counter() < end_time:
             pass
 
+
+
+
+    # 初始化CtokenClient，从tickets_info中获取服务器地址
+    tickets_info_dict = json.loads(tickets_info_str)
+    if 'ctoken_server_url' not in tickets_info_dict or not tickets_info_dict['ctoken_server_url']:
+        raise ValueError("ctoken服务器地址未配置，请在GUI中设置ctoken_server_url参数")
+    ctoken_client = CtokenClient(tickets_info_dict['ctoken_server_url'])
+    ctkid = None
+    ctoken = ""
+
     while isRunning:
         try:
+            # 如果是热门项目且需要刷新ctoken
+            if isHotProject:
+                try:
+                    if ctkid:
+                        # 刷新ctoken
+                        refresh_result = ctoken_client.refresh_ctoken(ctkid)
+                        ctoken = refresh_result.get("ctoken", "")
+                        yield f"刷新ctoken成功: {ctoken[:10]}..."
+                    else:
+                        # 首次获取ctoken
+                        init_result = ctoken_client.get_ctoken()
+                        ctoken = init_result.get("ctoken", "")
+                        ctkid = init_result.get("ctkid", "")
+                        yield f"获取初始ctoken成功: {ctoken[:10]}..."
+                    
+                    # 更新token_payload
+                    token_payload["token"] = ctoken
+                except Exception as e:
+                    yield f"ctoken操作失败: {str(e)}"
+                    if not ctoken:
+                        continue  # 如果没有ctoken则跳过本次循环
+
             yield "1）订单准备"
             request_result_normal = _request.post(
                 url=f"https://show.bilibili.com/api/ticket/order/prepare?project_id={tickets_info['project_id']}",
@@ -263,6 +298,7 @@ def buy(
         ntfy_url=None,
         ntfy_username=None,
         ntfy_password=None,
+        isHotProject=False,
 ):
     for msg in buy_stream(
             tickets_info_str,
@@ -277,6 +313,7 @@ def buy(
             ntfy_url,
             ntfy_username,
             ntfy_password,
+            isHotProject,
     ):
         logger.info(msg)
 
@@ -296,6 +333,7 @@ def buy_new_terminal(
         ntfy_url=None,
         ntfy_username=None,
         ntfy_password=None,
+        isHotProject=False,
 ) -> subprocess.Popen:
     command = [sys.executable]
     if not getattr(sys, "frozen", False):
@@ -327,5 +365,6 @@ def buy_new_terminal(
         command.extend(["--https_proxys", https_proxys])
     command.extend(["--filename", filename])
     command.extend(["--endpoint_url", endpoint_url])
+    command.extend(["--isHotProject", str(isHotProject)])
     proc = subprocess.Popen(command)
     return proc
