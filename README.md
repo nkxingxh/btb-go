@@ -2,7 +2,7 @@
   <a href="https://github.com/miaowuawa/MyGO" target="_blank">
 <img src="https://img.picui.cn/free/2025/06/19/6852ee5eb6324.jpg" alt="mygo.jpg" title="mygo.jpg" />  
   </a>
-  <h2 id="koishi">MyGO</h1>
+  <h1 id="koishi">MyGO</h1>
 
 <p>
   <!-- GitHub Downloads -->
@@ -37,18 +37,18 @@
 ## 注意事项
 
 本项目没有云控，但我们仍然不允许您使用此项目进行盈利性/商业化批量抢票。除非您承认，您失去了父母。
-为防止黄牛滥用和自动化脚本泛滥，本项目暂不提供ctoken生成的核心代码实现。我们理解这可能会给正常用户带来一些不便，但这一措施能有效限制大规模自动化抢票行为。
+为防止黄牛滥用和自动化脚本泛滥，本项目暂不提供ctoken/ticket生成的核心代码实现。我们理解这可能会给正常用户带来一些不便，但这一措施能有效限制大规模自动化抢票行为。
 
 
-### 如何获取ctoken？
+### 如何获取ctoken/ticket？
 
-您有以下两种方式获取ctoken：
+您有以下两种方式获取ctoken/ticket：
 
 #### 1. 自行逆向实现API
 
 您需要自行逆向分析并实现以下API接口：
 
-**生成接口**:
+**生成ctoken接口**:
 ```
 POST http://localhost:8080/generate
 Content-Type: application/json
@@ -66,7 +66,7 @@ Content-Type: application/json
 }
 ```
 
-**刷新接口**:
+**ctoken刷新接口**:
 ```
 GET http://localhost:8080/get/xXxXxXxXxXxXxXxXxXxX
 
@@ -75,6 +75,36 @@ GET http://localhost:8080/get/xXxXxXxXxXxXxXxXxXxX
   "ctoken": "something"
 }
 ```
+
+** ticket获取接口 **
+
+```
+POST http://localhost:8080/getticket
+Content-Type: application/json
+
+请求体:
+{
+  "user_agent": string,        // 必填，用户代理字符串
+  "cookies": [                 // 必填，Cookie数组
+    {
+      "name": string,           // Cookie名称
+      "value": string,          // Cookie值
+      "path": string,           // 可选，Cookie路径
+      "domain": string,         // 可选，Cookie域名
+      "expires": string         // 可选，过期时间
+    }
+  ],
+  "ctkid": string              // 可选，CToken会话ID（非必须）
+}
+
+响应:
+{
+  "ticket": "获取到的B站Ticket",
+  "error": string              // 错误时返回
+}
+
+```
+
 
 #### 2. 通过官方API服务
 

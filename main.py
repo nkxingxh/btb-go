@@ -85,6 +85,12 @@ def main():
         default=os.environ.get("BTB_HTTPS_PROXYS", "none"),
         help="like none,http://127.0.0.1:8080",
     )
+    buy_parser.add_argument(
+        "--isHotProject",
+        type=lambda x: x.lower() == "true",
+        default=get_env_default("ISHOTPROJECT", False, lambda x: str(x).lower() == "true"),
+        help="Whether this is a hot project (optional).",
+    )
     # `--worker` 子命令
     worker_parser = subparsers.add_parser("worker", help="Start the ticket worker ui")  # noqa: F841
     worker_parser.add_argument(

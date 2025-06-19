@@ -1,5 +1,5 @@
 import gradio as gr
-from util.CtokenClient import CtokenClient
+from util.RiskClient import RiskClient
 
 def function_test_tab():
     with gr.Column():
@@ -25,7 +25,7 @@ def function_test_tab():
         # ctoken测试功能逻辑
         def test_ctoken(server_url):
             try:
-                client = CtokenClient(server_url)
+                client = RiskClient(server_url)
                 ctoken = client.get_ctoken()
                 return f"获取成功: {ctoken}"
             except Exception as e:

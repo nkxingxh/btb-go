@@ -15,7 +15,7 @@ from requests import HTTPError, RequestException
 from util import ERRNO_DICT, NtfyUtil, PushPlusUtil, ServerChanUtil, time_service
 from util import bili_ticket_gt_python
 from util.BiliRequest import BiliRequest
-from service.GetCtoken import CtokenClient
+from util.RiskClient import RiskClient
 
 if bili_ticket_gt_python is not None:
     Amort = importlib.import_module("geetest.TripleValidator").TripleValidator()
@@ -97,7 +97,7 @@ def buy_stream(
     tickets_info_dict = json.loads(tickets_info_str)
     if 'ctoken_server_url' not in tickets_info_dict or not tickets_info_dict['ctoken_server_url']:
         raise ValueError("ctoken服务器地址未配置，请在GUI中设置ctoken_server_url参数")
-    ctoken_client = CtokenClient(tickets_info_dict['ctoken_server_url'])
+    ctoken_client = RiskClient(tickets_info_dict['ctoken_server_url'])
     ctkid = None
     ctoken = ""
 
