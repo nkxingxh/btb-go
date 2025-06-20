@@ -141,6 +141,7 @@ class RiskClient:
             "origin": 1750414952801,
             "now": 1750415029734
         }
+        这个太简单，开源了
         """
 
 
@@ -163,6 +164,7 @@ class RiskClient:
     def fake_first_click_position(width: int, height: int, start_timestamp_ms: int) -> Dict[str, int]:
         """
         伪造首次点击位置，和重试请求一样，但是返回的位置应该在屏幕右测60%-80%，屏幕底部80%到100%之间
+        这个太简单，开源了
         """
         x_min = int(width * 0.6)
         x_max = int(width * 0.8)
@@ -179,6 +181,21 @@ class RiskClient:
             "now": int(time.time() * 1000)
         }
 
+    def fake_x_risk_header(self,uid:str,deviceid:str):
+        """
+        伪造x-risk-header，用于重试请求
+        用户通过外部广告（渠道 ID=5）访问 B 站 → Cookie 中 opensource=5 → 渠道 ID 为 "5"
+用户直接访问 https://www.bilibili.com/comic/ → 渠道 ID 为 "32"
+用户通过商城 SDK 访问 B 站（非漫画路径）→ 渠道 ID 为 "1" 所以说渠道固定1
+deviceid是buvid4
+这个太简单，开源了
+        """
+        string = "platform/h5 uid/{uid} channel/{channel} deviceId/{deviceid}".format(
+            uid=uid,
+            channel=1,
+            deviceid= deviceid
+        )
+        return string
 
 
 

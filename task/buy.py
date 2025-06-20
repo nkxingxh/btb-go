@@ -29,6 +29,7 @@ def get_qrcode_url(_request, order_id) -> str:
     raise ValueError("获取二维码失败")
 
 
+
 def buy_stream(
         tickets_info_str,
         time_start,
@@ -52,6 +53,15 @@ def buy_stream(
     left_time = total_attempts
     tickets_info = json.loads(tickets_info_str)
     cookies = tickets_info["cookies"]
+
+    for cookie in cookies:
+        if cookie["name"] == "deviceFingerprint":
+            device_fingerprint = cookie["value"]
+        elif cookie["name"] == "buvid3":
+            buvid3 = cookie["value"]
+
+    deviceinfo = cookies[""]
+
     phone = tickets_info.get("phone", None)
     tickets_info.pop("cookies", None)
     tickets_info["buyer_info"] = json.dumps(tickets_info["buyer_info"])
@@ -123,8 +133,9 @@ def buy_stream(
                     yield f"ctoken操作失败: {str(e)}"
                     if not ctoken:
                         continue  # 如果没有ctoken则跳过本次循环
-
+            retry_count = 0
             yield "1）订单准备"
+            ctoken = risk_client.refresh_ctoken(ctkid)
             request_result_normal = _request.post(
                 url=f"https://show.bilibili.com/api/ticket/order/prepare?project_id={tickets_info['project_id']}",
                 data=token_payload,
@@ -186,9 +197,27 @@ def buy_stream(
                 yield f"prepare: {request_result}"
 
             tickets_info["again"] = 1
+            tickets_info["requestSource"] = "neul-next"
+            tickets_info["newRisk"] = True
+            tickets_info["coupon_code"] = "" # 优惠券码不使用
             tickets_info["token"] = request_result["data"]["token"]
             if isHotProject:
                 tickets_info["ptoken"] = request_result["data"]["ptoken"]
+            
+            # 根据是否是重试请求设置不同的点击位置
+            is_retry = retry_count > 0
+            if is_retry:
+                tickets_info["clickPosition"] = risk_client.fake_retry_click_position(
+                    tickets_info_dict['ctoken_server']['screen_width'],
+                    tickets_info_dict['ctoken_server']['screen_height'],
+                    int(time.time() * 1000)
+                )
+            else:
+                tickets_info["clickPosition"] = risk_client.fake_first_click_position(
+                    tickets_info_dict['ctoken_server']['screen_width'],
+                    tickets_info_dict['ctoken_server']['screen_height'],
+                    int(time.time() * 1000)
+                )
 
             yield "2）创建订单"
             tickets_info["timestamp"] = int(time.time()) * 100
@@ -199,6 +228,7 @@ def buy_stream(
                     yield "抢票结束"
                     break
                 try:
+                    ctoken = risk_client.refresh_ctoken(ctkid=ctkid)
                     ret = _request.post(
                         url=f"https://show.bilibili.com/api/ticket/order/createV2?project_id={tickets_info['project_id']}",
                         data=payload,
@@ -206,6 +236,7 @@ def buy_stream(
                     ).json()
                     err = int(ret.get("errno", ret.get("code")))
                     yield f"[尝试 {attempt}/60]  [{err}]({ERRNO_DICT.get(err, '未知错误码')}) | {ret}"
+                    retry_count += 1
 
                     if err == 100034:
                         yield f"更新票价为：{ret['data']['pay_money'] / 100}"
@@ -234,6 +265,7 @@ def buy_stream(
                 continue
             if result is None:
                 # if err == 100051:
+                retry_count += 1
                 yield "token过期，需要重新准备订单"
                 continue
 
@@ -244,7 +276,7 @@ def buy_stream(
                     _request,
                     request_result["data"]["orderId"],
                 )
-                qr_gen = qrcode.QRCode()
+                qr_gen = qrcode.QRCode() #type: ignore
                 qr_gen.add_data(qrcode_url)
                 qr_gen.make(fit=True)
                 qr_gen_image = qr_gen.make_image()
@@ -365,9 +397,8 @@ def buy_new_terminal(
         command.extend(["--ntfy_password", ntfy_password])
     if https_proxys:
         command.extend(["--https_proxys", https_proxys])
-    command.extend(["--isHotProject", isHotProject])
+    command.extend(["--isHotProject", str(isHotProject)])
     command.extend(["--filename", filename])
     command.extend(["--endpoint_url", endpoint_url])
-    command.extend(["--isHotProject", str(isHotProject)])
     proc = subprocess.Popen(command)
     return proc
