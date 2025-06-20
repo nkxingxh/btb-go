@@ -509,7 +509,6 @@ def go_tab(demo: gr.Blocks):
             total_attempts_ui,
             audio_path_ui,
             https_proxy_ui,
-            browser_path,
         ],
     )
     process_btn.click(

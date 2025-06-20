@@ -205,6 +205,11 @@ def on_submit_all(
         people_cur = [buyer_value[item] for item in people_indices]
         people_buyer_cur = buyer_value[people_buyer_index]
         ticket_id = extract_id_from_url(ticket_id)
+
+        for buyer in people_cur:
+            if "disabledErr" in buyer:
+                raise gr.Error(f"由于\"{buyer['disabledErr']}\"，此人（{buyer['name']}）无法购买此票种,请删除这一购买人", duration=5)
+
         if ticket_id is None:
             raise gr.Error("你所填不是网址，或者网址是错的", duration=5)
         if len(people_indices) == 0:

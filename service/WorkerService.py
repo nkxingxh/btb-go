@@ -59,7 +59,6 @@ def create_worker_app(app: FastAPI, args):
                     ntfy_username=data.ntfy_username,
                     ntfy_password=data.ntfy_password,
                     https_proxys=args.https_proxys,
-                    isHotProject=args.isHotProject,
                 ):
                     if cancel_event.is_set():
                         logger.info("任务被取消")

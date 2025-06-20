@@ -43,7 +43,6 @@ def buy_stream(
         ntfy_url=None,
         ntfy_username=None,
         ntfy_password=None,
-        isHotProject=False,
 ):
     global fesign, buvid3,riskHeader
 
@@ -51,33 +50,41 @@ def buy_stream(
         yield "当前设备不支持本地过验证码，无法使用"
         return
 
-    isRunning = True
+    is_running = True
     left_time = total_attempts
     tickets_info = json.loads(tickets_info_str)
+    is_hot_project = tickets_info["isHotProject"]
     cookies = tickets_info["cookies"]
 
     # 初始化RiskClient，从tickets_info中获取服务器地址
     tickets_info_dict = json.loads(tickets_info_str)
-    if ('ctoken_server_url' not in tickets_info_dict or not tickets_info_dict['ctoken_server']['url']) and (isHotProject):
+    if tickets_info_dict['ctoken_server']['url'] is None and is_hot_project:
         raise ValueError("此类型票必须配置ctoken服务器地址，但ctoken服务器地址未配置，请在GUI中设置ctoken_server_url参数")
-    risk_client = RiskClient(tickets_info_dict['ctoken_server_url'])
+    risk_client = RiskClient(tickets_info_dict['ctoken_server']['url'])
     ctkid = None
     ctoken = ""
-    deviceid = fesign
+    fesign = None
+    buvid3 = None
 
     for cookie in cookies:
         if cookie["name"] == "feSign":
             fesign = cookie["value"]
         if cookie["name"] == "buvid3":
             buvid3 = cookie["value"]
-            riskHeader = risk_client.fake_x_risk_header(buvid3, deviceid)
 
-            #这里这个ticket要检查一下，没有要获取
-    if deviceid is None or buvid3 is None:
+
+    #这里这个ticket要检查一下，没有要获取
+
+    #ticket = risk_client.get_cookie_ticket("Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1 Edg/137.0.0.0",cookies)
+
+    # 向cookie中加入
+
+    if fesign is None or buvid3 is None:
         yield "提示：您的cookie可能有问题，概率触发风控，但是不影响你抢票"
         yield " 如果开始时间还有很久，请重新获取一下cookie，注意多操作几下"
 
-
+    deviceid = fesign
+    riskHeader = risk_client.fake_x_risk_header(buvid3, deviceid)
     phone = tickets_info.get("phone", None)
     tickets_info.pop("cookies", None)
     tickets_info["buyer_info"] = json.dumps(tickets_info["buyer_info"])
@@ -101,15 +108,15 @@ def buy_stream(
         yield f"时间偏差已被设置为: {timeoffset}s"
         try:
             time_difference = (
-                datetime.strptime(time_start, "%Y-%m-%dT%H:%M:%S").timestamp()
-                - time.time()
-                + timeoffset
+                    datetime.strptime(time_start, "%Y-%m-%dT%H:%M:%S").timestamp()
+                    - time.time()
+                    + timeoffset
             )
         except ValueError:
             time_difference = (
-                datetime.strptime(time_start, "%Y-%m-%dT%H:%M").timestamp()
-                - time.time()
-                + timeoffset
+                    datetime.strptime(time_start, "%Y-%m-%dT%H:%M").timestamp()
+                    - time.time()
+                    + timeoffset
             )
         start_time = time.perf_counter()
         end_time = start_time + time_difference
@@ -117,10 +124,10 @@ def buy_stream(
             pass
 
 
-    while isRunning:
+    while is_running:
         try:
             # 如果是热门项目且需要刷新ctoken
-            if isHotProject:
+            if is_hot_project:
                 try:
                     if ctkid:
                         # 刷新ctoken
@@ -134,7 +141,7 @@ def buy_stream(
                         ctoken = init_result.get("ctoken", "")
                         ctkid = init_result.get("ctkid", "")
                         yield f"获取初始ctoken成功: {ctoken[:10]}..."
-                    
+
                     # 更新token_payload
                     token_payload["token"] = ctoken
                 except Exception as e:
@@ -149,70 +156,148 @@ def buy_stream(
                 data=token_payload,
                 isJson=True,
             )
-            request_result = request_result_normal.json()
-            yield f"请求头: {request_result_normal.headers} // 请求体: {request_result}"
-            code = int(request_result.get("errno", request_result.get("code")))
+            try:
+                request_result = request_result_normal.json()
+                yield f"请求头: {request_result_normal.headers} // 请求体: {request_result}"
+                
+                # 统一错误码检查
+                errno = request_result.get("errno", 0)
+                code = request_result.get("code", 0)
+                
+                # 检查是否为需要重试的错误码
+                if code == 100001 or (errno != 0 and errno != 100048 and errno != 100079):
+                    yield f"需要重试的错误码: errno={errno}, code={code}"
+                    continue
+                    
+                # 检查是否缺少必要字段
+                if "data" not in request_result:
+                    yield "错误: 响应缺少data字段"
+                    continue
+            except JSONDecodeError as e:
+                yield f"JSON解析错误: {e}"
+                continue
+            except Exception as e:
+                yield f"处理响应时发生异常: {e}"
+                continue
 
             if code == -401:
                 _url = "https://api.bilibili.com/x/gaia-vgate/v1/register"
-                _data = _request.post(
-                    _url,
-                    urlencode(request_result["data"]["ga_data"]["riskParams"]),
-                ).json()
-                yield f"验证码请求: {_data}"
-                csrf: str = _request.cookieManager.get_cookies_value("bili_jct")  # type: ignore
-                token: str = _data["data"]["token"]
+                try:
+                    _data = _request.post(
+                        _url,
+                        urlencode(request_result["data"]["ga_data"]["riskParams"]),
+                    ).json()
+                    yield f"验证码请求: {_data}"
+                    
+                    # 检查验证码请求响应
+                    if "data" not in _data or "token" not in _data["data"]:
+                        yield "错误: 验证码请求响应缺少必要字段"
+                        continue
+                        
+                    csrf: str = _request.cookieManager.get_cookies_value("bili_jct")  # type: ignore
+                    token: str = _data["data"]["token"]
 
-                if _data["data"]["type"] == "geetest":
-                    gt = _data["data"]["geetest"]["gt"]
-                    challenge: str = _data["data"]["geetest"]["challenge"]
-                    geetest_validate: str = Amort.validate(gt=gt, challenge=challenge)
-                    geetest_seccode: str = geetest_validate + "|jordan"
-                    yield f"geetest_validate: {geetest_validate},geetest_seccode: {geetest_seccode}"
+                    try:
+                        if _data["data"]["type"] == "geetest":
+                            gt = _data["data"]["geetest"]["gt"]
+                            challenge: str = _data["data"]["geetest"]["challenge"]
+                            geetest_validate: str = Amort.validate(gt=gt, challenge=challenge)
+                            geetest_seccode: str = geetest_validate + "|jordan"
+                            yield f"geetest_validate: {geetest_validate},geetest_seccode: {geetest_seccode}"
 
-                    _url = "https://api.bilibili.com/x/gaia-vgate/v1/validate"
-                    _payload = {
-                        "challenge": challenge,
-                        "token": token,
-                        "seccode": geetest_seccode,
-                        "csrf": csrf,
-                        "validate": geetest_validate,
-                    }
-                    _data = _request.post(_url, urlencode(_payload)).json()
-                elif _data["data"]["type"] == "phone":
-                    _payload = {
-                        "code": phone,
-                        "csrf": csrf,
-                        "token": token,
-                    }
-                    _data = _request.post(_url, urlencode(_payload)).json()
-                else:
-                    yield "这是一个程序无法应对的验证码，脚本无法处理"
-                    break
+                            _url = "https://api.bilibili.com/x/gaia-vgate/v1/validate"
+                            _payload = {
+                                "challenge": challenge,
+                                "token": token,
+                                "seccode": geetest_seccode,
+                                "csrf": csrf,
+                                "validate": geetest_validate,
+                            }
+                        elif _data["data"]["type"] == "phone":
+                            _payload = {
+                                "code": phone,
+                                "csrf": csrf,
+                                "token": token,
+                            }
+                        else:
+                            yield "这是一个程序无法应对的验证码，脚本无法处理"
+                            break
 
-                yield f"validate: {_data}"
-                if int(_data.get("errno", _data.get("code"))) == 0:
-                    yield "验证码成功"
-                else:
-                    yield f"验证码失败 {_data}"
+                        _data = _request.post(_url, urlencode(_payload)).json()
+                        yield f"validate: {_data}"
+                        
+                        # 检查验证结果
+                        code_str = _data.get("errno") or _data.get("code")
+                        if code_str is None:
+                            yield "错误: 验证码响应中缺少errno和code字段"
+                            continue
+                            
+                        try:
+                            code = int(code_str)
+                        except (ValueError, TypeError) as e:
+                            yield f"错误: 无法解析验证码错误码: {e}"
+                            continue
+                            
+                        if code == 0:
+                            yield "验证码成功"
+                        elif code == 100044:
+                            yield "检测到100044错误码，尝试新的验证码处理方式"
+                            voucher_result = risk_client.get_new_voucher(_request,tickets_info["project_id"],tickets_info["screen_id"])
+                            if "error" in voucher_result:
+                                yield f"新的验证码处理失败: {voucher_result['error']}"
+                            else:
+                                yield "新的验证码处理成功"
+                                token_payload["voucher"] = voucher_result["voucher"]
+                                continue
+                        else:
+                            yield f"验证码失败 {_data}"
+                            continue
+                            
+                    except Exception as e:
+                        yield f"处理验证码时发生异常: {e}"
+                        continue
+                
+                except Exception as e:
+                    yield f"处理验证码结果时发生异常: {e}"
+                    continue
+                
+                try:
+                    prepare_response = _request.post(
+                        url=f"https://show.bilibili.com/api/ticket/order/prepare?project_id={tickets_info['project_id']}",
+                        data=token_payload,
+                        isJson=True,
+                    )
+                    request_result = prepare_response.json()
+                    yield f"prepare: {request_result}"
+                    
+                    # 检查prepare响应
+                    errno = request_result.get("errno", 0)
+                    code = request_result.get("code", 0)
+                    if errno != 0 or code != 0:
+                        yield f"prepare请求失败: errno={errno}, code={code}"
+                        continue
+                        
+                except JSONDecodeError as e:
+                    yield f"prepare响应JSON解析错误: {e}"
+                    continue
+                except Exception as e:
+                    yield f"prepare请求异常: {e}"
                     continue
 
-                request_result = _request.post(
-                    url=f"https://show.bilibili.com/api/ticket/order/prepare?project_id={tickets_info['project_id']}",
-                    data=token_payload,
-                    isJson=True,
-                ).json()
-                yield f"prepare: {request_result}"
 
             tickets_info["again"] = 1
+            tickets_info["ticket_agent"] = ""
+            tickets_info["token"] = request_result["data"]["token"]
+            if is_hot_project:
+                tickets_info["ptoken"] = request_result["data"]["ptoken"]
+
+            yield "2）创建订单"
+            tickets_info["timestamp"] = int(time.time()) * 100
             tickets_info["requestSource"] = "neul-next"
             tickets_info["newRisk"] = True
             tickets_info["coupon_code"] = "" # 优惠券码不使用
             tickets_info["deviceId"] = deviceid
-            tickets_info["token"] = request_result["data"]["token"]
-            if isHotProject:
-                tickets_info["ptoken"] = request_result["data"]["ptoken"]
-            
+
             # 根据是否是重试请求设置不同的点击位置
             is_retry = retry_count > 0
             if is_retry:
@@ -228,23 +313,48 @@ def buy_stream(
                     int(time.time() * 1000)
                 )
 
-            yield "2）创建订单"
-            tickets_info["timestamp"] = int(time.time()) * 100
             payload = tickets_info
             result = None
             for attempt in range(1, 61):
-                if not isRunning:
+                if not is_running:
                     yield "抢票结束"
                     break
                 try:
                     ctoken = risk_client.refresh_ctoken(ctkid=ctkid)
-                    ret = _request.post(
+                    response = _request.post(
                         url=f"https://show.bilibili.com/api/ticket/order/createV2?project_id={tickets_info['project_id']}",
                         data=payload,
                         isJson=True,
-                    ).json()
-                    err = int(ret.get("errno", ret.get("code")))
-                    yield f"[尝试 {attempt}/60]  [{err}]({ERRNO_DICT.get(err, '未知错误码')}) | {ret}"
+                    )
+                    
+                    # 添加调试信息
+                    yield f"调试信息 - 请求URL: {response.url}"
+                    yield f"调试信息 - 状态码: {response.status_code}"
+                    yield f"调试信息 - 响应头: {response.headers}"
+                    
+                    try:
+                        ret = response.json()
+                        yield f"调试信息 - 完整响应: {ret}"
+                        
+                        # 检查errno和code字段
+                        if "errno" in ret:
+                            err = int(ret["errno"])
+                        elif "code" in ret:
+                            err = int(ret["code"])
+                        else:
+                            yield "错误: 响应中缺少errno和code字段"
+                            yield f"调试信息 - 无效响应结构: {ret}"
+                            continue
+                            
+                        yield f"[尝试 {attempt}/60]  [{err}]({ERRNO_DICT.get(err, '未知错误码')}) | {ret}"
+                        
+                    except JSONDecodeError as e:
+                        yield f"[尝试 {attempt}/60] JSON解析错误: {e}"
+                        yield f"调试信息 - 原始响应文本: {response.text}"
+                        continue
+                    except Exception as e:
+                        yield f"[尝试 {attempt}/60] 处理响应时发生异常: {e}"
+                        continue
                     retry_count += 1
 
                     if err == 100034:
@@ -280,24 +390,12 @@ def buy_stream(
 
             request_result, errno = result
             if errno == 0:
-                yield "3）抢票成功，弹出付款二维码"
-                qrcode_url = get_qrcode_url(
-                    _request,
-                    request_result["data"]["orderId"],
-                )
-                qr_gen = qrcode.QRCode() #type: ignore
-                qr_gen.add_data(qrcode_url)
-                qr_gen.make(fit=True)
-                qr_gen_image = qr_gen.make_image()
-                qr_gen_image.show()  # type: ignore
-                if pushplusToken:
-                    PushPlusUtil.send_message(
-                        pushplusToken, "抢票成功", "前往订单中心付款吧"
-                    )
-                if serverchanKey:
-                    ServerChanUtil.send_message(
-                        serverchanKey, "抢票成功", "前往订单中心付款吧"
-                    )
+                if "data" not in request_result or "orderId" not in request_result["data"]:
+                    yield "错误: 订单创建响应缺少必要字段"
+                    continue
+                    
+                yield "3）抢票成功，尽快支付"
+                yield request_result
                 if ntfy_url:
                     # 使用重复通知功能，每10秒发送一次，持续5分钟
                     NtfyUtil.send_repeat_message(
@@ -341,7 +439,6 @@ def buy(
         ntfy_url=None,
         ntfy_username=None,
         ntfy_password=None,
-        isHotProject=False,
 ):
     for msg in buy_stream(
             tickets_info_str,
@@ -356,7 +453,6 @@ def buy(
             ntfy_url,
             ntfy_username,
             ntfy_password,
-            isHotProject,
     ):
         logger.info(msg)
 
@@ -376,7 +472,6 @@ def buy_new_terminal(
         ntfy_url=None,
         ntfy_username=None,
         ntfy_password=None,
-        isHotProject=False,
 ) -> subprocess.Popen:
     command = [sys.executable]
     if not getattr(sys, "frozen", False):
@@ -406,7 +501,6 @@ def buy_new_terminal(
         command.extend(["--ntfy_password", ntfy_password])
     if https_proxys:
         command.extend(["--https_proxys", https_proxys])
-    command.extend(["--isHotProject", str(isHotProject)])
     command.extend(["--filename", filename])
     command.extend(["--endpoint_url", endpoint_url])
     proc = subprocess.Popen(command)
