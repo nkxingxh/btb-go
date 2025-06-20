@@ -4,6 +4,7 @@ import gradio as gr
 from service.RiskClient import RiskClient
 from tab.go import ways, ways_detail
 from util import main_request
+import time
 
 
 def function_test_tab():
@@ -149,3 +150,68 @@ def function_test_tab():
         inputs=[ticket_server_ui, user_agent_ui, cookies_ui],
         outputs=[ticket_output_ui]
     )
+    # 新版验证码测试功能逻辑
+    def test_new_captcha(project_id, screen_id):
+        try:
+            # 1. 请求prepare接口
+            prepare_url = f"https://show.bilibili.com/api/ticket/graph/prepare?project_id={project_id}&screen_id={screen_id}&timestamp={int(time.time() * 1000)}"
+            prepare_res = _request.get(prepare_url).json()
+
+            if prepare_res.get('errno') != 0:
+                return {"error": f"prepare接口错误: {prepare_res.get('message', '未知错误')}"}
+            yield prepare_res
+
+            # 获取验证码参数
+            data = prepare_res['data'][0] if isinstance(prepare_res['data'], list) else prepare_res['data']
+            captcha_id = data['captcha_id']
+            challenge = data['challenge']
+            old_voucher = data['voucher']
+
+            # 2. 过验证码
+            validator = ways_detail[select_way]
+            validate = validator.validate(gt=captcha_id, challenge=challenge)
+            seccode = validate + "|jordan"
+
+            # 3. 请求check接口
+            check_url = "https://show.bilibili.com/api/ticket/graph/check"
+            check_data = {
+                'project_id': project_id,
+                'screen_id': screen_id,
+                'voucher': old_voucher,
+                'challenge': challenge,
+                'validate': validate,
+                'seccode': seccode,
+                'success': True
+            }
+            check_res = _request.post(check_url, data=urlencode(check_data)).json()
+
+            return {
+                "prepare_result": prepare_res,
+                "check_result": check_res
+            }
+        except IndexError:
+            return {"error": "验证码方式选择无效，请确保已选择正确的验证码方式"}
+        except Exception as e:
+            return {"error": f"处理过程中发生错误: {str(e)}"}
+
+    # 新增新版验证码测试功能
+    with gr.Row():
+        gr.Markdown("### 新版验证码测试")
+    with gr.Row():
+        new_captcha_project_id = gr.Textbox(
+            label="项目ID",
+            placeholder="请输入项目ID"
+        )
+        new_captcha_screen_id = gr.Textbox(
+            label="场次ID",
+            placeholder="请输入场次ID"
+        )
+    with gr.Row():
+        new_captcha_test_btn = gr.Button("测试新版验证码", variant="primary")
+        new_captcha_output_ui = gr.JSON(label="验证码测试结果")
+        new_captcha_test_btn.click(
+            fn=test_new_captcha,
+            inputs=[new_captcha_project_id, new_captcha_screen_id],
+            outputs=[new_captcha_output_ui]
+        )
+

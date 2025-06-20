@@ -181,7 +181,8 @@ class RiskClient:
             "now": int(time.time() * 1000)
         }
 
-    def fake_x_risk_header(self,uid:str,deviceid:str):
+    @staticmethod
+    def fake_x_risk_header(uid:str,deviceid:str):
         """
         伪造x-risk-header，用于重试请求
         用户通过外部广告（渠道 ID=5）访问 B 站 → Cookie 中 opensource=5 → 渠道 ID 为 "5"
@@ -196,7 +197,7 @@ deviceid是buvid4
             deviceid= deviceid
         )
         return string
-
-
+    
+    def
 
 

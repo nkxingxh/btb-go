@@ -45,7 +45,8 @@ def buy_stream(
         ntfy_password=None,
         isHotProject=False,
 ):
-    global fesign
+    global fesign, buvid3,riskHeader
+
     if bili_ticket_gt_python is None:
         yield "当前设备不支持本地过验证码，无法使用"
         return
@@ -55,13 +56,27 @@ def buy_stream(
     tickets_info = json.loads(tickets_info_str)
     cookies = tickets_info["cookies"]
 
+    # 初始化RiskClient，从tickets_info中获取服务器地址
+    tickets_info_dict = json.loads(tickets_info_str)
+    if ('ctoken_server_url' not in tickets_info_dict or not tickets_info_dict['ctoken_server']['url']) and (isHotProject):
+        raise ValueError("此类型票必须配置ctoken服务器地址，但ctoken服务器地址未配置，请在GUI中设置ctoken_server_url参数")
+    risk_client = RiskClient(tickets_info_dict['ctoken_server_url'])
+    ctkid = None
+    ctoken = ""
+    deviceid = fesign
+
     for cookie in cookies:
         if cookie["name"] == "feSign":
-            fesign= cookie["value"]
+            fesign = cookie["value"]
         if cookie["name"] == "buvid3":
             buvid3 = cookie["value"]
+            riskHeader = risk_client.fake_x_risk_header(buvid3, deviceid)
 
-    deviceid = fesign
+            #这里这个ticket要检查一下，没有要获取
+    if deviceid is None or buvid3 is None:
+        yield "提示：您的cookie可能有问题，概率触发风控，但是不影响你抢票"
+        yield " 如果开始时间还有很久，请重新获取一下cookie，注意多操作几下"
+
 
     phone = tickets_info.get("phone", None)
     tickets_info.pop("cookies", None)
@@ -101,14 +116,6 @@ def buy_stream(
         while time.perf_counter() < end_time:
             pass
 
-
-    # 初始化RiskClient，从tickets_info中获取服务器地址
-    tickets_info_dict = json.loads(tickets_info_str)
-    if ('ctoken_server_url' not in tickets_info_dict or not tickets_info_dict['ctoken_server']['url']) and (isHotProject):
-        raise ValueError("此类型票必须配置ctoken服务器地址，但ctoken服务器地址未配置，请在GUI中设置ctoken_server_url参数")
-    risk_client = RiskClient(tickets_info_dict['ctoken_server_url'])
-    ctkid = None
-    ctoken = ""
 
     while isRunning:
         try:
@@ -201,6 +208,7 @@ def buy_stream(
             tickets_info["requestSource"] = "neul-next"
             tickets_info["newRisk"] = True
             tickets_info["coupon_code"] = "" # 优惠券码不使用
+            tickets_info["deviceId"] = deviceid
             tickets_info["token"] = request_result["data"]["token"]
             if isHotProject:
                 tickets_info["ptoken"] = request_result["data"]["ptoken"]
