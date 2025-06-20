@@ -45,6 +45,7 @@ def buy_stream(
         ntfy_password=None,
         isHotProject=False,
 ):
+    global fesign
     if bili_ticket_gt_python is None:
         yield "当前设备不支持本地过验证码，无法使用"
         return
@@ -55,12 +56,12 @@ def buy_stream(
     cookies = tickets_info["cookies"]
 
     for cookie in cookies:
-        if cookie["name"] == "deviceFingerprint":
-            device_fingerprint = cookie["value"]
-        elif cookie["name"] == "buvid3":
+        if cookie["name"] == "feSign":
+            fesign= cookie["value"]
+        if cookie["name"] == "buvid3":
             buvid3 = cookie["value"]
 
-    deviceinfo = cookies[""]
+    deviceid = fesign
 
     phone = tickets_info.get("phone", None)
     tickets_info.pop("cookies", None)
