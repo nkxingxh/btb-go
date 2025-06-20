@@ -1,7 +1,13 @@
+from urllib.parse import urlencode
+
 import requests
 from typing import Optional, Dict, List, Any
 import random
 import time
+import geetest
+
+from util import BiliRequest
+
 
 class RiskClient:
     def __init__(self, server_url):
@@ -197,7 +203,66 @@ deviceid是buvid4
             deviceid= deviceid
         )
         return string
-    
-    def
+
+    def get_new_voucher(self, req:BiliRequest, project_id:int, screen_id:int) -> dict[str, str] | dict[str, str]:
+        """
+        破解geetest验证码，获取voucher
+        """
+
+        # 第一步，prepare
+        prepare_url = f"https://show.bilibili.com/api/ticket/graph/prepare?project_id={project_id}&screen_id={screen_id}&timestamp={int(time.time() * 1000)}"
+        prepare_res = req.get(prepare_url)
+        if prepare_res.get('errno') != 0:
+            return {"error": f"prepare接口错误: {prepare_res.get('msg', '未知错误')}"}
+        if prepare_res.get('errno') == 0 and prepare_res.get('data') is None:
+            return {"error": "prepare接口返回数据为空，被演了"}
+        """
+            {
+              "errno": 0,
+              "errtag": 0,
+              "msg": "",
+              "data": []
+            } 这种返回说明被演了，data是空的
+        """
+        prepare_res = prepare_res.json()
+        # 获取验证码参数
+        data = prepare_res['data'][0] if isinstance(prepare_res['data'], list) else prepare_res['data']
+        captcha_id = data['captcha_id']
+        challenge = data['challenge']
+        old_voucher = data['voucher']
+        # 第二步，过验证码
+        validate = geetest.Validator.Validator()
+        result = validate.validate(gt=captcha_id, challenge=challenge)
+        seccode = result + "|jordan"
+
+        # 第三步，验证captcha对不对
+        check_url = "https://show.bilibili.com/api/ticket/graph/check"
+        check_data = {
+            'project_id': project_id,
+            'screen_id': screen_id,
+            'voucher': old_voucher, #老的voucher和新的voucher别混了
+            'challenge': challenge,
+            'validate': validate,
+            'seccode': seccode,
+            'success': True
+        }
+
+        check_res = req.post(check_url, data=urlencode(check_data)).json()
+
+        # 检查错误是否是0，data是否为空，是的话就被演了
+
+        if check_res.get('errno') == 0 and prepare_res.get('data') is None:
+            return {"error": "prepare接口返回数据为空，被演了"}
+        if prepare_res.get('errno') != 0:
+            return {"error": f"prepare接口错误: {prepare_res.get('msg', '未知错误')}"}
+
+        return {
+            "new_voucher": prepare_res["data"]["new_voucher"]
+        }
+
+
+
+
+
 
 
