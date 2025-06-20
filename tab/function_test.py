@@ -86,3 +86,66 @@ def function_test_tab():
         inputs=[],
         outputs=[test_log],
     )
+
+    # 新增通过cookie获取ticket测试功能
+    with gr.Row():
+        gr.Markdown("### 通过cookie获取ticket测试")
+    with gr.Row():
+        ticket_server_ui = gr.Textbox(
+            label="服务器地址",
+            value="http://localhost:8080",
+            placeholder="请输入服务器地址"
+        )
+        user_agent_ui = gr.Textbox(
+            label="User-Agent",
+            value="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+            placeholder="请输入User-Agent"
+        )
+    with gr.Row():
+        cookies_ui = gr.Textbox(
+            label="Cookies (JSON格式)",
+            value='[{"name":"SESSDATA","value":"xxx"},{"name":"bili_jct","value":"xxx"}]',
+            placeholder="请输入Cookies JSON数组，必须包含name和value字段",
+            lines=5
+        )
+        gr.Markdown("""
+        **Cookie格式说明**:
+        - 必须是JSON数组格式
+        - 每个Cookie必须包含name和value字段
+        - 可选字段: path, domain, expires, max_age, secure, http_only, same_site
+        
+        示例:
+        ```json
+        [
+          {"name":"SESSDATA","value":"your_sessdata_value"},
+          {"name":"bili_jct","value":"your_bili_jct_value"}
+        ]
+        ```
+        """)
+    with gr.Row():
+        ticket_test_btn = gr.Button("测试获取ticket", variant="primary")
+        ticket_output_ui = gr.Textbox(label="ticket获取结果", interactive=False, lines=5)
+
+    # ticket测试功能逻辑
+    def test_get_ticket(server_url, user_agent, cookies_json):
+        try:
+            import json
+            cookies = json.loads(cookies_json)
+            client = RiskClient(server_url)
+            result = client.get_cookie_ticket(user_agent, cookies)
+            
+            # 检查结果中是否包含error字段
+            if "error" in result:
+                return f"获取ticket失败: {result['error']}"
+            else:
+                return json.dumps(result, indent=2, ensure_ascii=False)
+        except json.JSONDecodeError as e:
+            return f"JSON解析错误: {str(e)}"
+        except Exception as e:
+            return f"未知错误: {str(e)}"
+
+    ticket_test_btn.click(
+        fn=test_get_ticket,
+        inputs=[ticket_server_ui, user_agent_ui, cookies_ui],
+        outputs=[ticket_output_ui]
+    )

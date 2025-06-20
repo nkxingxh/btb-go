@@ -187,6 +187,9 @@ def buy_stream(
 
             tickets_info["again"] = 1
             tickets_info["token"] = request_result["data"]["token"]
+            if isHotProject:
+                tickets_info["ptoken"] = request_result["data"]["ptoken"]
+
             yield "2）创建订单"
             tickets_info["timestamp"] = int(time.time()) * 100
             payload = tickets_info
