@@ -1,3 +1,5 @@
+import time
+
 from loguru import logger
 from playwright.sync_api import sync_playwright
 from util.KVDatabase import KVDatabase
@@ -26,9 +28,9 @@ class CookieManager:
                 page.click(".nav-header-register")
                 logger.info("浏览器启动, 进行登录")
                 page.wait_for_selector(".user-center-link", state="attached",timeout=None)
-                logger.info("登录完成后随便打开一个项目下单后取消订单，不要关浏览器，30秒后自动返回会员购页面自动关闭")
-                page.wait_for_timeout(30000)
-                page.goto(login_url)
+                logger.info("登录完成后随便打开一个项目下单后取消订单，不要关浏览器，40秒后自动返回会员购页面自动关闭")
+                time.sleep(40)
+                page.goto("mall.bilibili.com")
                 page.reload()
                 logger.info("登录好了，继续操作")
                 cookies = page.context.cookies()

@@ -300,7 +300,7 @@ def buy_stream(
             tickets_info["ticket_agent"] = ""
             tickets_info["token"] = request_result["data"]["token"]
             if is_hot_project:
-                tickets_info["ptoken"] = request_result["data"]["ptoken"]
+                tickets_info["ptoken"] = request_result["data"]["ptoken"].rstrip("=")  # 去掉尾部等号（如果有）
 
             yield "2）创建订单"
             tickets_info["timestamp"] = int(time.time()) * 100

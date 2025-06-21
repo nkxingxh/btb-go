@@ -20,7 +20,7 @@ def ticker_cmd(args: Namespace):
     """
 
     with gr.Blocks(
-        title="biliTickerBuy",
+        title="MyGO!!!!!",
         head="""<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>""",
     ) as demo:
         gr.Markdown(header)
