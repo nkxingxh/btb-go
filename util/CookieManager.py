@@ -30,7 +30,7 @@ class CookieManager:
                 page.wait_for_selector(".user-center-link", state="attached", timeout=0)
                 logger.info("登录完成后随便打开一个项目下单后取消订单，不要关浏览器，40秒后自动返回会员购页面自动关闭")
                 time.sleep(40)
-                page.goto("mall.bilibili.com")
+                page.goto("https://mall.bilibili.com")
                 page.reload()
                 logger.info("登录好了，继续操作")
                 cookies = page.context.cookies()
