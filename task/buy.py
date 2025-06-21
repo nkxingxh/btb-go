@@ -68,7 +68,7 @@ def buy_stream(
 
     # 调试输出cookie列表
     logger.debug(f"完整cookie列表: {json.dumps(cookies, indent=2)}")
-    
+
     # 查找需要的cookie，不区分大小写
     for cookie in cookies:
         cookie_name = cookie["name"].lower()
@@ -170,16 +170,16 @@ def buy_stream(
             try:
                 request_result = request_result_normal.json()
                 yield f"请求头: {request_result_normal.headers} // 请求体: {request_result}"
-                
+
                 # 统一错误码检查
                 errno = request_result.get("errno", 0)
                 code = request_result.get("code", 0)
-                
+
                 # 检查是否为需要重试的错误码
                 if code == 100001 or (errno != 0 and errno != 100048 and errno != 100079):
                     yield f"需要重试的错误码: errno={errno}, code={code}"
                     continue
-                    
+
                 # 检查是否缺少必要字段
                 if "data" not in request_result:
                     yield "错误: 响应缺少data字段"
@@ -199,12 +199,12 @@ def buy_stream(
                         urlencode(request_result["data"]["ga_data"]["riskParams"]),
                     ).json()
                     yield f"验证码请求: {_data}"
-                    
+
                     # 检查验证码请求响应
                     if "data" not in _data or "token" not in _data["data"]:
                         yield "错误: 验证码请求响应缺少必要字段"
                         continue
-                        
+
                     csrf: str = _request.cookieManager.get_cookies_value("bili_jct")  # type: ignore
                     token: str = _data["data"]["token"]
 
@@ -236,19 +236,19 @@ def buy_stream(
 
                         _data = _request.post(_url, urlencode(_payload)).json()
                         yield f"validate: {_data}"
-                        
+
                         # 检查验证结果
                         code_str = _data.get("errno") or _data.get("code")
                         if code_str is None:
                             yield "错误: 验证码响应中缺少errno和code字段"
                             continue
-                            
+
                         try:
                             code = int(code_str)
                         except (ValueError, TypeError) as e:
                             yield f"错误: 无法解析验证码错误码: {e}"
                             continue
-                            
+
                         if code == 0:
                             yield "验证码成功"
                         elif code == 100044:
@@ -263,15 +263,15 @@ def buy_stream(
                         else:
                             yield f"验证码失败 {_data}"
                             continue
-                            
+
                     except Exception as e:
                         yield f"处理验证码时发生异常: {e}"
                         continue
-                
+
                 except Exception as e:
                     yield f"处理验证码结果时发生异常: {e}"
                     continue
-                
+
                 try:
                     prepare_response = _request.post(
                         url=f"https://show.bilibili.com/api/ticket/order/prepare?project_id={tickets_info['project_id']}",
@@ -280,14 +280,14 @@ def buy_stream(
                     )
                     request_result = prepare_response.json()
                     yield f"prepare: {request_result}"
-                    
+
                     # 检查prepare响应
                     errno = request_result.get("errno", 0)
                     code = request_result.get("code", 0)
                     if errno != 0 or code != 0:
                         yield f"prepare请求失败: errno={errno}, code={code}"
                         continue
-                        
+
                 except JSONDecodeError as e:
                     yield f"prepare响应JSON解析错误: {e}"
                     continue
@@ -337,16 +337,16 @@ def buy_stream(
                         data=payload,
                         isJson=True,
                     )
-                    
+
                     # 添加调试信息
                     yield f"调试信息 - 请求URL: {response.url}"
                     yield f"调试信息 - 状态码: {response.status_code}"
                     yield f"调试信息 - 响应头: {response.headers}"
-                    
+
                     try:
                         ret = response.json()
                         yield f"调试信息 - 完整响应: {ret}"
-                        
+
                         # 检查errno和code字段
                         if "errno" in ret:
                             err = int(ret["errno"])
@@ -356,9 +356,9 @@ def buy_stream(
                             yield "错误: 响应中缺少errno和code字段"
                             yield f"调试信息 - 无效响应结构: {ret}"
                             continue
-                            
+
                         yield f"[尝试 {attempt}/60]  [{err}]({ERRNO_DICT.get(err, '未知错误码')}) | {ret}"
-                        
+
                     except JSONDecodeError as e:
                         yield f"[尝试 {attempt}/60] JSON解析错误: {e}"
                         yield f"调试信息 - 原始响应文本: {response.text}"
@@ -404,7 +404,13 @@ def buy_stream(
                 if "data" not in request_result or "orderId" not in request_result["data"]:
                     yield "错误: 订单创建响应缺少必要字段"
                     continue
-                    
+
+                # 新增检查orderCreateTime和token字段
+                required_fields = ["orderCreateTime", "token"]
+                for field in required_fields:
+                    if field not in request_result["data"]:
+                        yield f"错误: 订单创建响应缺少{field}字段"
+                        continue
             yield "3）抢票成功，尽快支付"
             yield request_result
             if ntfy_url:
