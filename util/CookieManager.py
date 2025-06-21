@@ -29,6 +29,7 @@ class CookieManager:
                 logger.info("登录完成后随便打开一个项目下单后取消订单，不要关浏览器，30秒后自动返回会员购页面自动关闭")
                 page.wait_for_timeout(30000)
                 page.goto(login_url)
+                page.reload()
                 logger.info("登录好了，继续操作")
                 cookies = page.context.cookies()
                 self.db.insert("cookie", cookies)

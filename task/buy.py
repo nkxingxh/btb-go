@@ -66,11 +66,22 @@ def buy_stream(
     fesign = None
     buvid3 = None
 
+    # 调试输出cookie列表
+    logger.debug(f"完整cookie列表: {json.dumps(cookies, indent=2)}")
+    
+    # 查找需要的cookie，不区分大小写
     for cookie in cookies:
-        if cookie["name"] == "feSign":
+        cookie_name = cookie["name"].lower()
+        if cookie_name == "fesign":
             fesign = cookie["value"]
-        if cookie["name"] == "buvid3":
+            logger.debug(f"找到feSign: {fesign}")
+        elif cookie_name == "buvid3":
             buvid3 = cookie["value"]
+            logger.debug(f"找到buvid3: {buvid3}")
+
+    # 检查是否找到必要cookie
+    if not fesign or not buvid3:
+        logger.warning(f"未找到feSign或buvid3 cookie，当前cookie名称: {[c['name'] for c in cookies]}")
 
 
     #这里这个ticket要检查一下，没有要获取
