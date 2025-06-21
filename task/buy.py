@@ -394,28 +394,31 @@ def buy_stream(
                     yield "错误: 订单创建响应缺少必要字段"
                     continue
                     
-                yield "3）抢票成功，尽快支付"
-                yield request_result
-                if ntfy_url:
-                    # 使用重复通知功能，每10秒发送一次，持续5分钟
-                    NtfyUtil.send_repeat_message(
-                        ntfy_url,
-                        f"抢票成功，bilibili会员购，请尽快前往订单中心付款",
-                        title="Bili Ticket Payment Reminder",
-                        username=ntfy_username,
-                        password=ntfy_password,
-                        interval_seconds=15,
-                        duration_minutes=5
-                    )
-                    yield "已启动重复通知，将每15秒发送一次提醒，持续5分钟"
+            yield "3）抢票成功，尽快支付"
+            yield request_result
+            if ntfy_url:
+                # 使用重复通知功能，每10秒发送一次，持续5分钟
+                NtfyUtil.send_repeat_message(
+                    ntfy_url,
+                    f"抢票成功，bilibili会员购，请尽快前往订单中心付款",
+                    title="Bili Ticket Payment Reminder",
+                    username=ntfy_username,
+                    password=ntfy_password,
+                    interval_seconds=15,
+                    duration_minutes=5
+                )
+                yield "已启动重复通知，将每15秒发送一次提醒，持续5分钟"
 
                 if audio_path:
                     playsound(audio_path)
                 break
+
             if mode == 1:
                 left_time -= 1
                 if left_time <= 0:
                     break
+            break
+
         except JSONDecodeError as e:
             yield f"配置文件格式错误: {e}"
         except HTTPError as e:

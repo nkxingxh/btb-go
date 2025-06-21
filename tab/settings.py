@@ -207,7 +207,7 @@ def on_submit_all(
         ticket_id = extract_id_from_url(ticket_id)
 
         for buyer in people_cur:
-            if "disabledErr" in buyer:
+            if "disabledErr" in buyer and buyer['disabledErr'] != "":
                 raise gr.Error(f"由于\"{buyer['disabledErr']}\"，此人（{buyer['name']}）无法购买此票种,请删除这一购买人", duration=5)
 
         if ticket_id is None:
