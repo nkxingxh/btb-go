@@ -41,13 +41,9 @@
 - 延迟越低，成功率越高，**临时封号/临时封实名危险越大**，自行权衡利弊
 
 ## 怎么用
-执行
-
-```
-pip install -r requirements.txt -i https://pypi.douban.com/simple
-playwright install
-```
-
+- 下载exe并运行
+- 如果浏览器无法打开，用chrome/edge浏览器输入“chrome://version"打开访问
+- 然后复制”可执行文件路径“后面一长串到输入框
 - 在登录账号后，不要关闭浏览器，那段时间不是让你干等的
 - 首先按f12打开开发者模式，打开设备仿真（电脑手机的图标）
 - 刷新页面，随便打开一个漫展活动场次
