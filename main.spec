@@ -13,6 +13,7 @@ datas.append(('geetest/model/yolo.onnx', 'geetest/model'))
 
 a = Analysis(
     ['main.py'],
+    parallel=True,
     pathex=[],
     binaries=[],
     datas=datas,
@@ -26,7 +27,7 @@ a = Analysis(
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
-    excludes=[],
+    excludes=['pytest', 'ipython', 'setuptools', 'pip', 'wheel', 'unittest', 'nose'],
     noarchive=False,
 )
 
@@ -38,11 +39,11 @@ exe = EXE(
     a.binaries,
     a.datas,
     [],
-    name='main',
+    name='MyGO',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
-    upx=True,
+    upx=False,
     upx_exclude=[],
     runtime_tmpdir=None,
     console=True,
@@ -51,13 +52,14 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
+    icon=['assets/favicon.ico']
 )
 coll = COLLECT(
     exe,
     a.binaries,
     a.datas,
     strip=False,
-    upx=True,
+    upx=False,
     upx_exclude=[],
     name='main',
 )
