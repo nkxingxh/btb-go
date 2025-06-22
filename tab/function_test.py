@@ -15,9 +15,9 @@ def function_test_tab():
             gr.Markdown("### ctoken获取测试")
         with gr.Row():
             ctoken_server_ui = gr.Textbox(
-                label="ctoken服务器地址",
-                value="http://localhost:8080",
-                placeholder="请输入ctoken服务器地址"
+                label="ctoken服务器地址，没有不填",
+                value="",
+                placeholder="请输入ctoken服务器地址，使用官方本地版则填写http://localhost:8080"
             )
             ctoken_test_btn = gr.Button("测试获取ctoken", variant="primary")
             ctoken_output_ui = gr.Textbox(label="ctoken获取结果", interactive=False)

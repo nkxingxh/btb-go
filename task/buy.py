@@ -59,7 +59,7 @@ def buy_stream(
     # 初始化RiskClient，从tickets_info中获取服务器地址
     tickets_info_dict = json.loads(tickets_info_str)
     if tickets_info_dict['ctoken_server']['url'] is None and is_hot_project:
-        raise ValueError("此类型票必须配置ctoken服务器地址，但ctoken服务器地址未配置，请在GUI中设置ctoken_server_url参数")
+        raise UserWarning("此类型票需要ctoken服务器，但ctoken服务器地址未配置，可能导致风控，请在GUI中设置ctoken_server_url参数")
     risk_client = RiskClient(tickets_info_dict['ctoken_server']['url'])
     ctkid = None
     ctoken = ""

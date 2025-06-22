@@ -287,6 +287,7 @@ def upload_file(filepath):
 def add(browser_path=None):
     main_request.cookieManager.db.delete("cookie")
     gr.Info("已经注销，将打开浏览器，请在浏览器里面重新登录", duration=5)
+    gr.Info("注意登录完成后打开设备仿真下一单", duration=5)
     yield [
         gr.update(value="未登录"),
         gr.update(value=GLOBAL_COOKIE_PATH),
