@@ -1,18 +1,33 @@
 # -*- mode: python ; coding: utf-8 -*-
+from PyInstaller.utils.hooks import collect_data_files
 
+datas = []
+datas += collect_data_files('gradio_client')
+datas += collect_data_files('gradio')
+datas += collect_data_files('gradio_calendar')
+datas += collect_data_files('gradio_log')
+
+datas += collect_data_files('playwright')
+datas.append(('geetest/model/triple.onnx', 'geetest/model'))
+datas.append(('geetest/model/yolo.onnx', 'geetest/model'))
 
 a = Analysis(
     ['main.py'],
     pathex=[],
     binaries=[],
-    datas=[],
-    hiddenimports=[],
+    datas=datas,
+    module_collection_mode={
+        'gradio': 'py',  # Collect gradio package as source .py files
+        'gradio_calendar': 'py',  # Collect'
+        'gradio_log': 'py',  # Collect'
+    },
+    hiddenimports=['geetest.TripleValidator', 'geetest.AmorterValidator', 'bili_ticket_gt_python',
+                   'scipy._lib.array_api_compat.numpy.fft'],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
     excludes=[],
     noarchive=False,
-    optimize=0,
 )
 pyz = PYZ(a.pure)
 
@@ -35,5 +50,5 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon=['assets\\favicon.ico'],
+    icon=['assets/favicon.ico']
 )
