@@ -93,7 +93,7 @@ def buy_stream(
 
     if fesign is None or buvid3 is None:
         yield "提示：您的cookie可能有问题，概率触发风控，但是不影响你抢票"
-        yield " 如果开始时间还有很久，请重新获取一下cookie，注意多操作几下"
+        yield " 如果开始时间还有很久，请重新获取一下cookie，注意一定要打开设备仿真下单一次"
 
     deviceid = fesign
     riskHeader = risk_client.fake_x_risk_header(buvid3, deviceid)
@@ -158,6 +158,7 @@ def buy_stream(
                     token_payload["token"] = ctoken
                 except Exception as e:
                     yield f"ctoken操作失败: {str(e)}"
+                    yield "请检查ctoken服务器是否启动，地址配置是否正确"
                     if not ctoken:
                         continue  # 如果没有ctoken则跳过本次循环
             retry_count = 0
