@@ -5,11 +5,15 @@ from util import LOG_DIR
 
 
 def read_last_logs(n=1000):
-    app_log_paht = os.path.join(LOG_DIR, "app.log")
-    if not os.path.exists(app_log_paht):
+    app_log_path = os.path.join(LOG_DIR, "app.log")
+    if not os.path.exists(app_log_path):
         return "No logs found."
-    with open(app_log_paht, "r", encoding="utf-8") as f:
-        lines = f.readlines()
+    try:
+        with open(app_log_path, "r", encoding="utf-8") as f:
+            lines = f.readlines()
+    except UnicodeDecodeError:
+        with open(app_log_path, "r", encoding="utf-8", errors="replace") as f:
+            lines = f.readlines()
     return "".join(lines[-n:])
 
 
