@@ -49,9 +49,9 @@
 - 刷新页面，随便打开一个漫展活动场次
 - 点击购买并到达支付页面，在手机端取消订单
 
-### 如何获取ctoken/ticket？
+### 如何获取ctoken？
 
-您有以下两种方式获取ctoken/ticket：
+您有以下两种方式获取ctoken：
 
 #### 1. 自行逆向实现API
 
@@ -85,32 +85,6 @@ GET http://localhost:8080/get/xXxXxXxXxXxXxXxXxXxX
 }
 ```
 
-** ticket获取接口 **
-
-```
-POST http://localhost:8080/getticket
-Content-Type: application/json
-
-请求体:
-{
-  "user_agent": string,        // 必填，用户代理字符串
-  "cookies": [                 // 必填，Cookie数组
-    {
-      "name": string,           // Cookie名称
-      "value": string,          // Cookie值
-      "path": string,           // 可选，Cookie路径
-      "domain": string,         // 可选，Cookie域名
-      "expires": string         // 可选，过期时间
-    }
-  ],
-  "ctkid": string              // 可选，CToken会话ID（非必须）
-}
-
-响应:
-{
-  "ticket": "获取到的B站Ticket",
-  "error": string              // 错误时返回
-}
 
 ```
 
@@ -140,9 +114,9 @@ Content-Type: application/json
 
 ## ❗ 项目问题
 
-程序使用问题： [点此链接前往discussions](https://github.com/mikumifa/biliTickerBuy/discussions)
+程序使用问题： [点此链接前往discussions](https://github.com/miaowuawa/MyGO/discussions)
 
-反馈程序BUG或者提新功能建议： [点此链接向项目提出反馈BUG](https://github.com/mikumifa/biliTickerBuy/issues/new/choose)
+反馈程序BUG或者提新功能建议： [点此链接向项目提出反馈BUG](https://github.com/miaowuawa/MyGO/issues/new/choose)
 
 
 

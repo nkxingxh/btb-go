@@ -38,7 +38,7 @@ def get_application_tmp_path() -> str:
 
 EXE_PATH: str = os.path.dirname(os.path.realpath(sys.executable))  # 应用目录
 TEMP_PATH: str = get_application_tmp_path()  # 临时目录
-LOG_DIR: str = os.path.join(EXE_PATH, "btb_logs")
+LOG_DIR: str = os.path.join(EXE_PATH, "mygo_logs")
 loguru_config(LOG_DIR, "app.log", enable_console=True, file_colorize=False)
 ERRNO_DICT = {
     0: "成功",
