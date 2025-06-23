@@ -33,7 +33,7 @@ jobs:
           pyinstaller main.spec
 
       - name: Zip the Build-windows
-        run: Compress-Archive -Path ./dist -DestinationPath tmp.zip
+        run: Compress-Archive -Path ./dist/MyGO.exe -DestinationPath tmp.zip
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
