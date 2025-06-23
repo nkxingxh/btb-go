@@ -9,8 +9,11 @@ def buy_cmd(args: Namespace):
 
     from util import LOG_DIR
 
+    import json
+    tickets_info = json.loads(args.tickets_info_str)
+
     log_file = loguru_config(
-        LOG_DIR, f"{uuid.uuid1()}.log", enable_console=False, file_colorize=True
+        LOG_DIR, f"{tickets_info['phone']}_{tickets_info['buyer']}_{uuid.uuid1()}.log", enable_console=False, file_colorize=True
     )
 
     import os
