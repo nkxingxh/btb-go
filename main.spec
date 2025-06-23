@@ -13,7 +13,6 @@ datas.append(('geetest/model/yolo.onnx', 'geetest/model'))
 
 a = Analysis(
     ['main.py'],
-    parallel=True,
     pathex=[],
     binaries=[],
     datas=datas,
