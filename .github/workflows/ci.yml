@@ -1,0 +1,44 @@
+name: Python Release
+
+on:
+  push:
+  workflow_dispatch:
+#https://docs.github.com/en/actions/using-github-hosted-runners/using-github-hosted-runners/about-github-hosted-runners
+jobs:
+  build:
+    name: Build Executables
+    runs-on: windows-latest
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v2
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: 3.11
+          cache: 'pip'
+
+      - name: Upgrade setuptools, wheel, and install requirements
+        run: |
+          pip install --upgrade setuptools wheel pyinstaller~=5.13.2 && pip install -r requirements.txt
+
+      - name: Build playwright
+        shell: bash
+        run: |
+          PLAYWRIGHT_BROWSERS_PATH=0 playwright install chromium
+
+      - name: Build Pyinstaller
+        shell: bash
+        run: |
+          pyinstaller main.spec
+
+      - name: Zip the Build-windows
+        run: Compress-Archive -Path ./dist -DestinationPath tmp.zip
+
+      - name: Upload binaries to release
+        uses: svenstaro/upload-release-action@v2
+        with:
+          file: tmp.zip
+          asset_name: ${{ secrets.ReleaseZipName }}_windows_amd64_${{ github.ref_name }}.zip
+          tag: ${{ github.ref }}
+          overwrite: true
